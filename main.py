@@ -315,8 +315,8 @@ async def renderQueueLoop():
                         with open(render.getOutputFilename(), 'rb') as videoFile:
                             files = {'files[]': (render.getOutputFilename(), videoFile)}
                             response = requests.post('https://uguu.se/upload.php?output=text', files=files).content.decode("utf-8").strip()
-                            parsed_response = json.loads(response)
-                            url = parsed_response["files"][0]["url"]
+                            # parsed_response = json.loads(response)
+                            url = response
                             newFeedback = f"""
                             `Fetching messages... Done!`
                             `Your video is being generated... Done!`

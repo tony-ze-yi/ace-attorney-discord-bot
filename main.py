@@ -1,5 +1,5 @@
 import traceback
-
+import re
 import discord
 import os
 import random
@@ -160,7 +160,9 @@ async def music(interaction: Interaction):
 
     music_string = "\n"
     for entry in Music:
-        music_string += entry.name + "\n"
+        music_string += entry.value + " (" + entry.name + ") " + "\n"
+
+    music_string += 'Use the three letter abbreviation when using the reply render feature. For example, "@aabot render 100 tat" would render the last 100 messages before the message you replied to with the Trials and Tribulations music'
     await interaction.followup.send("The available music is: " + music_string)
 
 
@@ -226,10 +228,11 @@ async def help(interaction: Interaction):
     helpEmbed.add_field(
         name="Know available music", value=f"`{prefix}music`", inline=False
     )
-    # TODO: to handle starting from a certain message, ping the bot with "render <args>" and it will start from that message
     helpEmbed.add_field(
         name="Starting message",
-        value="The bot will start from the last message sent, excluding the slash command you sent.",
+        value="The bot will start from the last message sent, excluding the slash command you sent. If you want it to "
+              "end at a specific message, reply to the message and ping aabot with the format `@aabot render <number "
+              "of messages> <music (eg. tat) (optional)>`",
         inline=False,
     )
     await interaction.followup.send(embed=helpEmbed)
@@ -321,10 +324,10 @@ async def render(
     global renderQueue
     feedbackMessage = await interaction.followup.send(content="`Checking queue...`")
     petitionsFromSameGuild = [
-        x for x in renderQueue if x.discordInteraction.guild_id == interaction.guild_id
+        x for x in renderQueue if x.get_guild_id() == interaction.guild_id
     ]
     petitionsFromSameUser = [
-        x for x in renderQueue if x.discordInteraction.user.id == interaction.user.id
+        x for x in renderQueue if x.get_user_id() == interaction.user.id
     ]
     try:
         if len(petitionsFromSameGuild) > max_per_guild:
@@ -356,7 +359,126 @@ async def render(
             raise Exception("There should be at least one person in the conversation.")
 
         newRender = Render(
-            State.QUEUED, interaction, feedbackMessage, courtMessages, music.value
+            state=State.QUEUED,
+            feedbackMessage=feedbackMessage,
+            messages=courtMessages,
+            music=music.value,
+            discordInteraction=interaction,
+        )
+        renderQueue.append(newRender)
+
+        lastRender = time.time()
+
+    except Exception as exception:
+        traceback.print_exc()
+        print(exception)
+        exceptionEmbed = discord.Embed(description=str(exception), color=0xFF0000)
+        await feedbackMessage.edit(content="", embed=exceptionEmbed)
+        addToDeletionQueue(feedbackMessage)
+
+
+@courtBot.event
+async def on_message(message):
+    if f"<@!{courtBot.user.id}>" in message.content:
+        matches = re.findall(
+            rf"<@!{courtBot.user.id}> render ([0-9]+) ?([a-zA-Z]{3})?", message.content
+        )
+        if len(matches) > 0:
+            num_messages = int(matches[0][0])
+            song = matches[0][1]
+            if song == "":
+                song = "pwr"
+            elif song not in music_arr:
+                await message.reply(
+                    "Invalid music! Please use `/music` to find out what music is available. Make "
+                    "sure to use the 3 letter abbreviation. Alternatively, you can specify no music, "
+                    "and the default will be used."
+                )
+                return
+            handle_reply_render(message, num_messages, song)
+        else:
+            await message.reply(
+                "Invalid format! Please use format `@aabot render <number of messages> <music string eg. tat ("
+                "optional)>`"
+            )
+            return
+
+
+def handle_reply_render(message: Message, num_messages: int, song: str):
+    if staff_only:
+        if not message.author.guild_permissions.manage_messages:
+            errEmbed = discord.Embed(
+                description="Only staff members can use this command!", color=0xFF0000
+            )
+            errMsg = await message.reply(embed=errEmbed)
+            addToDeletionQueue(errMsg)
+            return
+
+    global lastRender, cooldown
+    if lastRender is not None and cooldown is not None:
+        if (time.time() - lastRender) < cooldown:
+            errEmbed = discord.Embed(
+                description=f"Please wait **{round(cooldown - (time.time() - lastRender))}** seconds before using this command again.",
+                color=0xFF0000,
+            )
+            errMsg = await message.reply(embed=errEmbed)
+            addToDeletionQueue(errMsg)
+            return
+
+    global renderQueue
+    feedbackMessage = await message.reply(content="`Checking queue...`")
+    petitionsFromSameGuild = [
+        x for x in renderQueue if x.get_guild_id() == message.guild.id
+    ]
+    petitionsFromSameUser = [
+        x for x in renderQueue if x.get_user_id() == message.author.id
+    ]
+    try:
+        if len(petitionsFromSameGuild) > max_per_guild:
+            raise Exception(f"Only up to {max_per_guild} renders per guild are allowed")
+        if len(petitionsFromSameUser) > max_per_user:
+            raise Exception(f"Only up to {max_per_user} renders per user are allowed")
+        await feedbackMessage.edit(content="`Fetching messages...`")
+        if num_messages == 0:
+            raise Exception("Please specify the number of messages to be rendered!")
+        if not (num_messages in range(1, 101)):
+            raise Exception("Number of messages must be between 1 and 100")
+
+        courtMessages = []
+
+        # Get Message object of replied to message
+        if message.reference is not None:
+            replied_to_message = message.reference.resolved
+            discordMessages = [replied_to_message]
+        else:
+            await message.reply(
+                "Please reply to the message you want to the render to stop at!"
+            )
+            return
+
+        # note that discordMessages is in new -> old order, and in the rendering process will be flipped from
+        # old -> new
+        discordMessages += [
+            message
+            async for message in message.channel.history(
+                limit=num_messages - 1, oldest_first=False, before=replied_to_message
+            )
+        ]
+
+        for discordMessage in discordMessages:
+            message = Message(discordMessage)
+            if message.text.strip():
+                courtMessages.insert(0, message.to_Comment())
+
+        if len(courtMessages) < 1:
+            raise Exception("There should be at least one person in the conversation.")
+
+        newRender = Render(
+            state=State.QUEUED,
+            feedbackMessage=feedbackMessage,
+            messages=courtMessages,
+            music=song,
+            discordReply=message,
         )
         renderQueue.append(newRender)
 

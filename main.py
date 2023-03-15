@@ -202,7 +202,6 @@ async def help(interaction: Interaction):
     helpEmbed = discord.Embed(
         description="Discord bot that turns message chains into ace attorney scenes.\nIf you have any problems, please go to [the support server](https://discord.gg/pcS4MPbRDU).",
         color=0x3366CC,
-        footer='Do not include these symbols ("<" and ">") when using this command',
     )
     helpEmbed.set_author(name=courtBot.user.name, icon_url=courtBot.user.avatar_url)
     helpEmbed.add_field(

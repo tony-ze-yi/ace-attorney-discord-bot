@@ -314,10 +314,10 @@ async def render(interaction: Interaction, num_messages: int, music: Music = "pw
     global renderQueue
     feedbackMessage = await interaction.followup.send(content="`Checking queue...`")
     petitionsFromSameGuild = [
-        x for x in renderQueue if x.discordContext.guild.id == interaction.guild.id
+        x for x in renderQueue if x.discordInteraction.guild.id == interaction.guild.id
     ]
     petitionsFromSameUser = [
-        x for x in renderQueue if x.discordContext.author.id == interaction.user.id
+        x for x in renderQueue if x.discordInteraction.user.id == interaction.user.id
     ]
     try:
         if len(petitionsFromSameGuild) > max_per_guild:
@@ -331,7 +331,6 @@ async def render(interaction: Interaction, num_messages: int, music: Music = "pw
             raise Exception("Number of messages must be between 1 and 100")
 
         courtMessages = []
-        discordMessages = []
 
         # No need to remove calling message since slash commands don't have that
         discordMessages = [

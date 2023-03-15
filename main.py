@@ -298,7 +298,7 @@ async def queue(interaction: Interaction):
     music="Music to use (optional, default is AA)",
 )
 async def render(
-    interaction: Interaction, num_messages: int, music: Music = Music.AceAttorney
+        interaction: Interaction, num_messages: int, music: Music = Music.AceAttorney
 ):
     await interaction.response.defer()
     if staff_only:
@@ -381,7 +381,7 @@ async def render(
 async def on_message(message):
     if courtBot.user in message.mentions:
         matches = re.findall(
-            rf"<@!{courtBot.user.id}> render ([0-9]+) ?([a-zA-Z]{3})?", message.content
+            rf"<@{courtBot.user.id}> render ([0-9]+) ?([a-zA-Z]{3})?", message.content
         )
         if len(matches) > 0:
             num_messages = int(matches[0][0])
@@ -451,9 +451,7 @@ async def handle_reply_render(message: Message, num_messages: int, song: str):
             replied_to_message = message.reference.resolved
             discordMessages = [replied_to_message]
         else:
-            await message.reply(
-                "Please reply to the message you want to the render to stop at!"
-            )
+            await feedbackMessage.edit(content="Please reply to the message you want to the render to stop at!")
             return
 
         # note that discordMessages is in new -> old order, and in the rendering process will be flipped from
@@ -567,7 +565,7 @@ async def renderQueueLoop():
                         newFeedback = f"""
                         `Fetching messages... Done!`
                         `Your video is being generated... Done!`
-                        `Video file too big for you server! {round(fileSize/1000000, 2)} MB`
+                        `Video file too big for you server! {round(fileSize / 1000000, 2)} MB`
                         `Trying to upload file to an external server...`
                         """
                         await render.updateFeedback(newFeedback)
@@ -586,7 +584,7 @@ async def renderQueueLoop():
                             newFeedback = f"""
                             `Fetching messages... Done!`
                             `Your video is being generated... Done!`
-                            `Video file too big for you server! {round(fileSize/1000000, 2)} MB`
+                            `Video file too big for you server! {round(fileSize / 1000000, 2)} MB`
                             `Trying to upload file to an external server... Done!`
                             """
                             await render.updateFeedback(newFeedback)
@@ -599,7 +597,7 @@ async def renderQueueLoop():
                         newFeedback = f"""
                         `Fetching messages... Done!`
                         `Your video is being generated... Done!`
-                        `Video file too big for you server! {round(fileSize/1000000, 2)} MB`
+                        `Video file too big for you server! {round(fileSize / 1000000, 2)} MB`
                         `Trying to upload file to an external server... Failed!`
                         """
                         await render.updateFeedback(newFeedback)

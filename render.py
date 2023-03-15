@@ -32,7 +32,7 @@ class Render:
         self.discordReply = discordReply
         self.feedbackMessage = feedbackMessage
         self.messages = messages
-        self.outputFilename = f"{str(discordInteraction.id)}.mp4"
+        self.outputFilename = f"{str(self.get_id())}.mp4"
         self.music_code = music
 
     def getStateString(self):
@@ -90,6 +90,12 @@ class Render:
             return self.discordInteraction.user.id
         else:
             return self.discordReply.author.id
+
+    def get_id(self):
+        if self.discordInteraction is not None:
+            return self.discordInteraction.id
+        else:
+            return self.discordReply.id
 
     async def updateFeedback(self, newContent: str):
         try:

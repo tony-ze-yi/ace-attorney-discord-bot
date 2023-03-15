@@ -31,9 +31,9 @@ deletionQueue = []
 lastRender = 0
 music_arr = get_all_music_available()
 music_dict = {
-    "tat": "Trials and Tribulations",
-    "jfa": "Justice for All",
-    "pwr": "Phoenix Wright: Ace Attorney",
+    "tat": "TrialsAndTribulations",
+    "jfa": "JusticeForAll",
+    "pwr": "AceAttorney",
     "rnd": "Random",
 }
 
@@ -291,7 +291,7 @@ async def queue(interaction: Interaction):
     num_messages="Number of messages to use",
     music="Music to use (optional, default is AA)",
 )
-async def render(interaction: Interaction, num_messages: int, music: Music = "pwr"):
+async def render(interaction: Interaction, num_messages: int, music: Music = Music.AceAttorney):
     await interaction.response.defer()
     if staff_only:
         if not interaction.user.guild_permissions.manage_messages:
@@ -351,7 +351,7 @@ async def render(interaction: Interaction, num_messages: int, music: Music = "pw
             raise Exception("There should be at least one person in the conversation.")
 
         newRender = Render(
-            State.QUEUED, interaction, feedbackMessage, courtMessages, music
+            State.QUEUED, interaction, feedbackMessage, courtMessages, music.value
         )
         renderQueue.append(newRender)
 

@@ -122,15 +122,7 @@ def addToDeletionQueue(message: discord.Message):
         newDeletion = Deletion(message, int(deletionDelay))
         deletionQueue.append(newDeletion)
 
-@courtBot.event
-async def on_message(message):
-    if message.author is courtBot.user or message.author.bot:
-        return
-    if message.channel.type is discord.ChannelType.private:
-        embedResponse = discord.Embed(description="I won't process any messages via PM.\nIf you have any problems, please go to [the support server](https://discord.gg/pcS4MPbRDU).", color=0xff0000)
-        await message.channel.send(embed=embedResponse)
-        return
-    await courtBot.process_commands(message)
+
 @tree.command(
     name="music",
     description="Get a list of available music for the Ace Attorney bot",

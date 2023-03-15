@@ -514,6 +514,7 @@ async def renderQueueLoop():
 
 @courtBot.event
 async def on_ready():
+    await tree.sync()
     global currentActivityText
     print("Bot is ready!")
     print(

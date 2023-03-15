@@ -1,3 +1,5 @@
+import traceback
+
 import discord
 import os
 import random
@@ -314,7 +316,7 @@ async def render(interaction: Interaction, num_messages: int, music: Music = "pw
     global renderQueue
     feedbackMessage = await interaction.followup.send(content="`Checking queue...`")
     petitionsFromSameGuild = [
-        x for x in renderQueue if x.discordInteraction.guild.id == interaction.guild.id
+        x for x in renderQueue if x.discordInteraction.guild_id == interaction.guild_id
     ]
     petitionsFromSameUser = [
         x for x in renderQueue if x.discordInteraction.user.id == interaction.user.id
@@ -356,6 +358,8 @@ async def render(interaction: Interaction, num_messages: int, music: Music = "pw
         lastRender = time.time()
 
     except Exception as exception:
+        traceback.print_exc()
+        print(exception)
         exceptionEmbed = discord.Embed(description=str(exception), color=0xFF0000)
         await feedbackMessage.edit(content="", embed=exceptionEmbed)
         addToDeletionQueue(feedbackMessage)

@@ -379,7 +379,7 @@ async def render(
 
 @courtBot.event
 async def on_message(message):
-    if f"<@!{courtBot.user.id}>" in message.content:
+    if courtBot.user in message.mentions:
         matches = re.findall(
             rf"<@!{courtBot.user.id}> render ([0-9]+) ?([a-zA-Z]{3})?", message.content
         )

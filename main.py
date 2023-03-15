@@ -334,9 +334,12 @@ async def render(interaction: Interaction, num_messages: int, music: Music = "pw
         discordMessages = []
 
         # No need to remove calling message since slash commands don't have that
-        discordMessages += await interaction.channel.history(
-            limit=num_messages, oldest_first=False, before=interaction.created_at
-        ).flatten()
+        discordMessages = [
+            message
+            async for message in interaction.channel.history(
+                limit=num_messages, oldest_first=False, before=interaction.created_at
+            )
+        ]
 
         for discordMessage in discordMessages:
             message = Message(discordMessage)

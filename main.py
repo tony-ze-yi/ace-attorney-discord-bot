@@ -158,8 +158,10 @@ async def music(interaction: Interaction):
             addToDeletionQueue(errMsg)
             return
 
-    music_string = "\n- ".join(music_arr)
-    await interaction.followup.send("The available music is:\n- " + music_string)
+    music_string = "\n"
+    for entry in Music:
+        music_string += entry.name + "\n"
+    await interaction.followup.send("The available music is: " + music_string)
 
 
 @tree.command(
@@ -218,15 +220,16 @@ async def help(interaction: Interaction):
     )
     helpEmbed.add_field(
         name="Example with music",
-        value=f"`{prefix}render {dummyAmount} tat`",
+        value=f"`{prefix}render {dummyAmount} TrialsAndTribulations`",
         inline=False,
     )
     helpEmbed.add_field(
         name="Know available music", value=f"`{prefix}music`", inline=False
     )
+    # TODO: to handle starting from a certain message, ping the bot with "render <args>" and it will start from that message
     helpEmbed.add_field(
         name="Starting message",
-        value="By default the bot will load the specified number of messages from the last message (before using the command) going backwards, if you want the message count to start from another message, reply to it when using the command.",
+        value="The bot will start from the last message sent, excluding the slash command you sent.",
         inline=False,
     )
     await interaction.followup.send(embed=helpEmbed)
@@ -291,7 +294,9 @@ async def queue(interaction: Interaction):
     num_messages="Number of messages to use",
     music="Music to use (optional, default is AA)",
 )
-async def render(interaction: Interaction, num_messages: int, music: Music = Music.AceAttorney):
+async def render(
+    interaction: Interaction, num_messages: int, music: Music = Music.AceAttorney
+):
     await interaction.response.defer()
     if staff_only:
         if not interaction.user.guild_permissions.manage_messages:

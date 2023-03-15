@@ -29,7 +29,7 @@ class Render:
         self.discordInteraction = discordInteraction
         self.feedbackMessage = feedbackMessage
         self.messages = messages
-        self.outputFilename = f"{str(discordInteraction.message.id)}.mp4"
+        self.outputFilename = f"{str(discordInteraction.id)}.mp4"
         self.music_code = music
 
     def getStateString(self):

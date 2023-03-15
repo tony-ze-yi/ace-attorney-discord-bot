@@ -395,7 +395,7 @@ async def on_message(message):
                     "and the default will be used."
                 )
                 return
-            handle_reply_render(message, num_messages, song)
+            await handle_reply_render(message, num_messages, song)
         else:
             await message.reply(
                 "Invalid format! Please use format `@aabot render <number of messages> <music string eg. tat ("
@@ -404,7 +404,7 @@ async def on_message(message):
             return
 
 
-def handle_reply_render(message: Message, num_messages: int, song: str):
+async def handle_reply_render(message: Message, num_messages: int, song: str):
     if staff_only:
         if not message.author.guild_permissions.manage_messages:
             errEmbed = discord.Embed(

@@ -85,7 +85,7 @@ def loadConfig():
 
             staff_only = config["staff_only"]
 
-            owner_id = int(config["owner_id"].strip())
+            owner_id = config["owner_id"]
             if not deletionDelay:
                 raise Exception("The 'owner_id' field is missing in the config file (config.yaml)!")
 

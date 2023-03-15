@@ -6,6 +6,7 @@ from enum import Enum
 from objection_engine.beans.comment import Comment
 from typing import List
 
+
 class State(Enum):
     QUEUED = 0
     INPROGRESS = 1
@@ -14,8 +15,16 @@ class State(Enum):
     UPLOADING = 4
     DONE = 5
 
+
 class Render:
-    def __init__(self, state: State, discordInteraction: Interaction, feedbackMessage: Message, messages: List[Comment], music: str):
+    def __init__(
+        self,
+        state: State,
+        discordInteraction: Interaction,
+        feedbackMessage: Message,
+        messages: List[Comment],
+        music: str,
+    ):
         self.state = state
         self.discordInteraction = discordInteraction
         self.feedbackMessage = feedbackMessage
@@ -39,7 +48,7 @@ class Render:
 
     def getState(self):
         return self.state
-        
+
     def getInteraction(self):
         return self.discordInteraction
 
@@ -54,7 +63,7 @@ class Render:
 
     def setState(self, state: State):
         self.state = state
-        
+
     async def updateFeedback(self, newContent: str):
         try:
             newContent = textwrap.dedent(newContent).strip("\n")
@@ -65,4 +74,6 @@ class Render:
         except Exception as exception:
             # If it doesn't exist, we will repost it.
             print(f"Error: {exception}")
-            self.feedbackMessage = await self.discordInteraction.followup.send(content=newContent)
+            self.feedbackMessage = await self.discordInteraction.followup.send(
+                content=newContent
+            )

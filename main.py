@@ -330,26 +330,12 @@ async def render(interaction: Interaction, num_messages: int, music: Music = "pw
         if not (num_messages in range(1, 101)):
             raise Exception("Number of messages must be between 1 and 100")
 
-        # baseMessage is the message from which the specified number of messages will be fetch, not including itself
-        baseMessage = (
-            interaction.message.reference.resolved
-            if interaction.message.reference
-            else interaction.message
-        )
         courtMessages = []
         discordMessages = []
 
-        # If the render command was executed within a reply (baseMessage and context.Message aren't the same), we want
-        # to append the message the user replied to (baseMessage) to the 'discordMessages' list and substract 1 from
-        # 'num_messages' that way we are taking the added baseMessage into consideration and avoid getting 1 extra message)
-        if not baseMessage.id == interaction.message.id:
-            num_messages = num_messages - 1
-            discordMessages.append(baseMessage)
-
-        # This will append all messages to the already existing discordMessages, if the message was a reply it should already
-        # include one message (the one it was replying to), if not: it will be empty at this point.
+        # No need to remove calling message since slash commands don't have that
         discordMessages += await interaction.channel.history(
-            limit=num_messages, oldest_first=False, before=baseMessage
+            limit=num_messages, oldest_first=False, before=interaction.created_at
         ).flatten()
 
         for discordMessage in discordMessages:

@@ -287,10 +287,10 @@ async def queue(interaction: Interaction):
     description="Render an Ace Attorney scene from message history",
 )
 @app_commands.describe(
-    numberOfMessages="Number of messages to use",
+    num_messages="Number of messages to use",
     music="Music to use (optional, default is AA)",
 )
-async def render(interaction: Interaction, numberOfMessages: int, music: Music = "pwr"):
+async def render(interaction: Interaction, num_messages: int, music: Music = "pwr"):
     await interaction.response.defer()
     if staff_only:
         if not interaction.user.guild_permissions.manage_messages:
@@ -326,9 +326,9 @@ async def render(interaction: Interaction, numberOfMessages: int, music: Music =
         if len(petitionsFromSameUser) > max_per_user:
             raise Exception(f"Only up to {max_per_user} renders per user are allowed")
         await feedbackMessage.edit(content="`Fetching messages...`")
-        if numberOfMessages == 0:
+        if num_messages == 0:
             raise Exception("Please specify the number of messages to be rendered!")
-        if not (numberOfMessages in range(1, 101)):
+        if not (num_messages in range(1, 101)):
             raise Exception("Number of messages must be between 1 and 100")
 
         # baseMessage is the message from which the specified number of messages will be fetch, not including itself
@@ -342,15 +342,15 @@ async def render(interaction: Interaction, numberOfMessages: int, music: Music =
 
         # If the render command was executed within a reply (baseMessage and context.Message aren't the same), we want
         # to append the message the user replied to (baseMessage) to the 'discordMessages' list and substract 1 from
-        # 'numberOfMessages' that way we are taking the added baseMessage into consideration and avoid getting 1 extra message)
+        # 'num_messages' that way we are taking the added baseMessage into consideration and avoid getting 1 extra message)
         if not baseMessage.id == interaction.message.id:
-            numberOfMessages = numberOfMessages - 1
+            num_messages = num_messages - 1
             discordMessages.append(baseMessage)
 
         # This will append all messages to the already existing discordMessages, if the message was a reply it should already
         # include one message (the one it was replying to), if not: it will be empty at this point.
         discordMessages += await interaction.channel.history(
-            limit=numberOfMessages, oldest_first=False, before=baseMessage
+            limit=num_messages, oldest_first=False, before=baseMessage
         ).flatten()
 
         for discordMessage in discordMessages:

@@ -1,6 +1,6 @@
 import textwrap
 
-from discord.ext.commands import Context
+from discord import Interaction
 from discord.message import Message
 from enum import Enum
 from objection_engine.beans.comment import Comment
@@ -15,12 +15,12 @@ class State(Enum):
     DONE = 5
 
 class Render:
-    def __init__(self, state: State, discordContext: Context, feedbackMessage: Message, messages: List[Comment], music: str):
+    def __init__(self, state: State, discordInteraction: Interaction, feedbackMessage: Message, messages: List[Comment], music: str):
         self.state = state
-        self.discordContext = discordContext
+        self.discordInteraction = discordInteraction
         self.feedbackMessage = feedbackMessage
         self.messages = messages
-        self.outputFilename = f"{str(discordContext.message.id)}.mp4"
+        self.outputFilename = f"{str(discordInteraction.message.id)}.mp4"
         self.music_code = music
 
     def getStateString(self):
@@ -40,8 +40,8 @@ class Render:
     def getState(self):
         return self.state
         
-    def getContext(self):
-        return self.discordContext
+    def getInteraction(self):
+        return self.discordInteraction
 
     def getFeedbackMessage(self):
         return self.feedbackMessage
@@ -63,6 +63,6 @@ class Render:
                 await self.feedbackMessage.edit(content=newContent)
             # If it's unable to edit/get the feedback message, it will raise an exception and that means that it no longer exists
         except Exception as exception:
-            # If it doesn't exists, we will repost it.
+            # If it doesn't exist, we will repost it.
             print(f"Error: {exception}")
-            self.feedbackMessage = await self.discordContext.send(content=newContent)
+            self.feedbackMessage = await self.discordInteraction.followup.send(content=newContent)

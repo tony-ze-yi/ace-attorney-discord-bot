@@ -7,3 +7,4 @@ max_tasks:
 invite_link: ""
 cooldown: 30
 staff_only: False
+owner_id: 0

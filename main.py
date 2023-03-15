@@ -8,6 +8,9 @@ import time
 import json
 import yaml
 import gc
+
+from discord import app_commands, Interaction
+
 sys.path.append("./objection_engine")
 
 from deletion import Deletion
@@ -18,11 +21,33 @@ from objection_engine.renderer import render_comment_list
 from objection_engine import get_all_music_available
 from render import Render, State
 from typing import List
+from enum import Enum
 
 # Global Variables:
 renderQueue = []
 deletionQueue = []
 lastRender = 0
+music_arr = get_all_music_available()
+music_dict = {
+    "tat": "Trials and Tribulations",
+    "jfa": "Justice for All",
+    "pwr": "Phoenix Wright: Ace Attorney",
+    "rnd": "Random",
+}
+
+def get_music_name(song: str):
+    if song in music_arr:
+        return music_dict[song]
+    else:
+        return song
+
+def create_music_enum():
+    music_list = []
+    for m in music_arr:
+        music_list.append((get_music_name(m), m))
+    return Enum("Music", music_list)
+
+Music = create_music_enum()
 
 intents = discord.Intents.default()
 intents.members = True
@@ -30,7 +55,7 @@ def loadConfig():
     try:
         with open("config.yaml") as file:
             config = yaml.load(file, Loader=yaml.FullLoader)
-            global token, prefix, deletionDelay, max_per_guild, max_per_user, invite_link, cooldown, staff_only
+            global token, prefix, deletionDelay, max_per_guild, max_per_user, invite_link, cooldown, staff_only, owner_id
 
             token = config["token"].strip()
             if not token:
@@ -48,7 +73,7 @@ def loadConfig():
             if max is not None:
                 max_per_guild = max["per_guild"]
                 max_per_user = max["per_user"]
-            
+
             if not max_per_guild:
                 max_per_guild = 100
             if not max_per_user:
@@ -60,6 +85,10 @@ def loadConfig():
 
             staff_only = config["staff_only"]
 
+            owner_id = int(config["owner_id"].strip())
+            if not deletionDelay:
+                raise Exception("The 'owner_id' field is missing in the config file (config.yaml)!")
+
             return True
     except KeyError as keyErrorException:
         print(f"The mapping key {keyErrorException} is missing in the config file (config.yaml)!")
@@ -70,10 +99,9 @@ def loadConfig():
 if not loadConfig():
     exit()
 
-courtBot = commands.AutoShardedBot(command_prefix=prefix, Intents=intents, max_messages=None)
-# Default 'help' command is removed, we will make our own
-courtBot.remove_command("help")
-currentActivityText = f"{prefix}help"
+courtBot = discord.Client(intents=intents)
+currentActivityText = f"/help"
+tree = app_commands.CommandTree(courtBot)
 
 async def changeActivity(newActivityText):
     try:
@@ -103,37 +131,50 @@ async def on_message(message):
         await message.channel.send(embed=embedResponse)
         return
     await courtBot.process_commands(message)
-@courtBot.command()
-async def music(context):
+@tree.command(
+    name="music",
+    description="Get a list of available music for the Ace Attorney bot",
+)
+async def music(interaction: Interaction):
+    await interaction.response.defer()
     if staff_only:
-        if not context.author.guild_permissions.manage_messages:
+        if not interaction.user.guild_permissions.manage_messages:
             errEmbed = discord.Embed(description="Only staff members can use this command!", color=0xff0000)
-            errMsg = await context.send(embed=errEmbed)
+            errMsg = await interaction.followup.send(embed=errEmbed)
             addToDeletionQueue(errMsg)
             return
 
-    music_arr = get_all_music_available()
     music_string = '\n- '.join(music_arr)
-    await context.reply('The available music is:\n- ' + music_string)
+    await interaction.followup.send('The available music is:\n- ' + music_string)
 
-@courtBot.command()
-async def invite(context):
+@tree.command(
+    name="invite",
+    description="Get invite link",
+)
+async def invite(interaction: Interaction):
+    await interaction.response.defer()
     if staff_only:
-        if not context.author.guild_permissions.manage_messages:
+        if not interaction.user.guild_permissions.manage_messages:
             errEmbed = discord.Embed(description="Only staff members can use this command!", color=0xff0000)
-            errMsg = await context.send(embed=errEmbed)
+            errMsg = await interaction.followup.send(embed=errEmbed)
             addToDeletionQueue(errMsg)
             return
 
     if invite_link is not None:
-        await context.reply(invite_link)
+        await interaction.followup.send(invite_link)
+    else:
+        await interaction.followup.send("No invite link was set in the config file (config.yaml)!")
 
-@courtBot.command()
-async def help(context):
+@tree.command(
+    name="help",
+    description="Ace Attorney bot help",
+)
+async def help(interaction: Interaction):
+    await interaction.response.defer()
     if staff_only:
-        if not context.author.guild_permissions.manage_messages:
+        if not interaction.user.guild_permissions.manage_messages:
             errEmbed = discord.Embed(description="Only staff members can use this command!", color=0xff0000)
-            errMsg = await context.send(embed=errEmbed)
+            errMsg = await interaction.followup.send(embed=errEmbed)
             addToDeletionQueue(errMsg)
             return
 
@@ -145,12 +186,20 @@ async def help(context):
     helpEmbed.add_field(name="Example with music", value=f"`{prefix}render {dummyAmount} tat`", inline=False)
     helpEmbed.add_field(name="Know available music", value=f"`{prefix}music`", inline=False)
     helpEmbed.add_field(name="Starting message", value="By default the bot will load the specified number of messages from the last message (before using the command) going backwards, if you want the message count to start from another message, reply to it when using the command.", inline=False)
-    await context.send(embed=helpEmbed)
+    await interaction.followup.send(embed=helpEmbed)
 
 # This command is only for the bot owner, it will ignore everybody else
-@courtBot.command()
-@commands.is_owner()
-async def queue(context):
+@tree.command(
+    name="queue",
+    description="Get queue for bot (owner only!)",
+)
+async def queue(interaction: Interaction):
+    await interaction.response.defer()
+    if not interaction.user.id == owner_id:
+        errEmbed = discord.Embed(description="Only the owner of the bot can use this command!", color=0xff0000)
+        errMsg = await interaction.followup.send(embed=errEmbed)
+        addToDeletionQueue(errMsg)
+        return
 
     filename = "queue.txt"
     with open(filename, 'w', encoding="utf-8") as queue:
@@ -159,7 +208,7 @@ async def queue(context):
         queue.write(f"There are {renderQueueSize} item(s) in the queue!\n")
         for positionInQueue, render in enumerate(iterable=renderQueue):
             queue.write(f"\n#{positionInQueue:04}\n")
-            try: queue.write(f"Requested by: {render.getContext().author.name}#{render.getContext().author.discriminator}\n")
+            try: queue.write(f"Requested by: {render.getInteraction().user.name}#{render.getInteraction().user.discriminator}\n")
             except: pass
             try: queue.write(f"Number of messages: {len(render.getMessages())}\n")
             except: pass
@@ -169,30 +218,38 @@ async def queue(context):
             except: pass
             try: queue.write(f"State: {render.getStateString()}\n")
             except: pass
-    await context.send(file=discord.File(filename))
+    await interaction.followup.send(file=discord.File(filename))
     clean([], filename)
 
-@courtBot.command()
-async def render(context, numberOfMessages: int = 0, music: str = 'pwr'):
+@tree.command(
+    name="render",
+    description="Render an Ace Attorney scene from message history",
+)
+@app_commands.describe(
+    numberOfMessages="Number of messages to use",
+    music="Music to use (optional, default is AA)",
+)
+async def render(interaction: Interaction, numberOfMessages: int, music: Music = "pwr"):
+    await interaction.response.defer()
     if staff_only:
-        if not context.author.guild_permissions.manage_messages:
+        if not interaction.user.guild_permissions.manage_messages:
             errEmbed = discord.Embed(description="Only staff members can use this command!", color=0xff0000)
-            errMsg = await context.send(embed=errEmbed)
+            errMsg = await interaction.followup.send(embed=errEmbed)
             addToDeletionQueue(errMsg)
             return
-            
+
     global lastRender, cooldown
     if lastRender is not None and cooldown is not None:
         if (time.time() - lastRender) < cooldown:
             errEmbed = discord.Embed(description=f"Please wait **{round(cooldown - (time.time() - lastRender))}** seconds before using this command again.", color=0xff0000)
-            errMsg = await context.send(embed=errEmbed)
+            errMsg = await interaction.followup.send(embed=errEmbed)
             addToDeletionQueue(errMsg)
             return
 
     global renderQueue
-    feedbackMessage = await context.send(content="`Checking queue...`")
-    petitionsFromSameGuild = [x for x in renderQueue if x.discordContext.guild.id == context.guild.id]
-    petitionsFromSameUser = [x for x in renderQueue if x.discordContext.author.id == context.author.id]
+    feedbackMessage = await interaction.followup.send(content="`Checking queue...`")
+    petitionsFromSameGuild = [x for x in renderQueue if x.discordContext.guild.id == interaction.guild.id]
+    petitionsFromSameUser = [x for x in renderQueue if x.discordContext.author.id == interaction.user.id]
     try:
         if (len(petitionsFromSameGuild) > max_per_guild):
             raise Exception(f"Only up to {max_per_guild} renders per guild are allowed")
@@ -205,21 +262,21 @@ async def render(context, numberOfMessages: int = 0, music: str = 'pwr'):
             raise Exception("Number of messages must be between 1 and 100")
 
         # baseMessage is the message from which the specified number of messages will be fetch, not including itself
-        baseMessage = context.message.reference.resolved if context.message.reference else context.message
+        baseMessage = interaction.message.reference.resolved if interaction.message.reference else interaction.message
         courtMessages = []
         discordMessages = []
 
         # If the render command was executed within a reply (baseMessage and context.Message aren't the same), we want
         # to append the message the user replied to (baseMessage) to the 'discordMessages' list and substract 1 from
         # 'numberOfMessages' that way we are taking the added baseMessage into consideration and avoid getting 1 extra message)
-        if not baseMessage.id == context.message.id:
+        if not baseMessage.id == interaction.message.id:
             numberOfMessages = numberOfMessages - 1
             discordMessages.append(baseMessage)
 
         # This will append all messages to the already existing discordMessages, if the message was a reply it should already
         # include one message (the one it was replying to), if not: it will be empty at this point.
-        discordMessages += await context.channel.history(limit=numberOfMessages, oldest_first=False, before=baseMessage).flatten()
-        
+        discordMessages += await interaction.channel.history(limit=numberOfMessages, oldest_first=False, before=baseMessage).flatten()
+
         for discordMessage in discordMessages:
             message = Message(discordMessage)
             if message.text.strip():
@@ -228,7 +285,7 @@ async def render(context, numberOfMessages: int = 0, music: str = 'pwr'):
         if len(courtMessages) < 1:
             raise Exception("There should be at least one person in the conversation.")
 
-        newRender = Render(State.QUEUED, context, feedbackMessage, courtMessages, music)
+        newRender = Render(State.QUEUED, interaction, feedbackMessage, courtMessages, music)
         renderQueue.append(newRender)
 
         lastRender = time.time()
@@ -294,8 +351,8 @@ async def renderQueueLoop():
 
                 # If the file size is lower than the maximun file size allowed in this guild, upload it to Discord
                 fileSize = os.path.getsize(render.getOutputFilename())
-                if fileSize < render.getContext().channel.guild.filesize_limit:
-                    await render.getContext().send(content=render.getContext().author.mention, file=discord.File(render.getOutputFilename()))
+                if fileSize < render.getInteraction().channel.guild.filesize_limit:
+                    await render.getInteraction().followup.send(content=render.getInteraction().user.mention, file=discord.File(render.getOutputFilename()))
                     render.setState(State.DONE)
                     newFeedback = f"""
                     `Fetching messages... Done!`
@@ -324,7 +381,7 @@ async def renderQueueLoop():
                             `Trying to upload file to an external server... Done!`
                             """
                             await render.updateFeedback(newFeedback)
-                            await render.getContext().send(content=f"{render.getContext().author.mention}\n{url}\n_This video will be deleted in 48 hours_")
+                            await render.getInteraction().followup.send(content=f"{render.getInteraction().user.mention}\n{url}\n_This video will be deleted in 48 hours_")
                             render.setState(State.DONE)
 
                     except Exception as exception:
@@ -336,7 +393,7 @@ async def renderQueueLoop():
                         """
                         await render.updateFeedback(newFeedback)
                         exceptionEmbed = discord.Embed(description=exception, color=0xff0000)
-                        exceptionMessage = await render.getContext().send(embed=exceptionEmbed)
+                        exceptionMessage = await render.getInteraction().followup.send(embed=exceptionEmbed)
                         addToDeletionQueue(exceptionMessage)
                         render.setState(State.DONE)
 

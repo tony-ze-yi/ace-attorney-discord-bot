@@ -404,13 +404,13 @@ async def on_message(message):
             return
 
 
-async def handle_reply_render(message: Message, num_messages: int, song: str):
+async def handle_reply_render(init_message: Message, num_messages: int, song: str):
     if staff_only:
-        if not message.author.guild_permissions.manage_messages:
+        if not init_message.author.guild_permissions.manage_messages:
             errEmbed = discord.Embed(
                 description="Only staff members can use this command!", color=0xFF0000
             )
-            errMsg = await message.reply(embed=errEmbed)
+            errMsg = await init_message.reply(embed=errEmbed)
             addToDeletionQueue(errMsg)
             return
 
@@ -421,17 +421,17 @@ async def handle_reply_render(message: Message, num_messages: int, song: str):
                 description=f"Please wait **{round(cooldown - (time.time() - lastRender))}** seconds before using this command again.",
                 color=0xFF0000,
             )
-            errMsg = await message.reply(embed=errEmbed)
+            errMsg = await init_message.reply(embed=errEmbed)
             addToDeletionQueue(errMsg)
             return
 
     global renderQueue
-    feedbackMessage = await message.reply(content="`Checking queue...`")
+    feedbackMessage = await init_message.reply(content="`Checking queue...`")
     petitionsFromSameGuild = [
-        x for x in renderQueue if x.get_guild_id() == message.guild.id
+        x for x in renderQueue if x.get_guild_id() == init_message.guild.id
     ]
     petitionsFromSameUser = [
-        x for x in renderQueue if x.get_user_id() == message.author.id
+        x for x in renderQueue if x.get_user_id() == init_message.author.id
     ]
     try:
         if len(petitionsFromSameGuild) > max_per_guild:
@@ -447,8 +447,8 @@ async def handle_reply_render(message: Message, num_messages: int, song: str):
         courtMessages = []
 
         # Get Message object of replied to message
-        if message.reference is not None:
-            replied_to_message = message.reference.resolved
+        if init_message.reference is not None:
+            replied_to_message = init_message.reference.resolved
             discordMessages = [replied_to_message]
         else:
             await feedbackMessage.edit(content="Please reply to the message you want to the render to stop at!")
@@ -458,7 +458,7 @@ async def handle_reply_render(message: Message, num_messages: int, song: str):
         # old -> new
         discordMessages += [
             message
-            async for message in message.channel.history(
+            async for message in init_message.channel.history(
                 limit=num_messages - 1, oldest_first=False, before=replied_to_message
             )
         ]
@@ -476,7 +476,7 @@ async def handle_reply_render(message: Message, num_messages: int, song: str):
             feedbackMessage=feedbackMessage,
             messages=courtMessages,
             music=song,
-            discordReply=message,
+            discordReply=init_message,
         )
         renderQueue.append(newRender)
 

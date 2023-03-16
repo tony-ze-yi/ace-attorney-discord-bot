@@ -1,8 +1,8 @@
 import textwrap
 import traceback
+from datetime import datetime
 
-from discord import Interaction
-from discord.message import Message
+from discord import Interaction, Message
 from enum import Enum
 from objection_engine.beans.comment import Comment
 from typing import List, Optional
@@ -32,7 +32,8 @@ class Render:
         self.discordReply = discordReply
         self.feedbackMessage = feedbackMessage
         self.messages = messages
-        self.outputFilename = f"{str(self.get_id())}.mp4"
+        filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
+        self.outputFilename = f"{filename}.mp4"
         self.music_code = music
 
     def getStateString(self):

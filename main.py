@@ -263,7 +263,7 @@ async def queue(interaction: Interaction):
             queue.write(f"\n#{positionInQueue:04}\n")
             try:
                 queue.write(
-                    f"Requested by: {render.getInteraction().user.name}#{render.getInteraction().user.discriminator}\n"
+                    f"Requested by: {render.getUser().name}#{render.getUser().discriminator}\n"
                 )
             except:
                 pass
@@ -548,9 +548,9 @@ async def renderQueueLoop():
 
                 # If the file size is lower than the maximun file size allowed in this guild, upload it to Discord
                 fileSize = os.path.getsize(render.getOutputFilename())
-                if fileSize < render.getInteraction().channel.guild.filesize_limit:
-                    await render.getInteraction().followup.send(
-                        content=render.getInteraction().user.mention,
+                if fileSize < render.getChannel().guild.filesize_limit:
+                    await render.reply(
+                        content=render.getUser().mention,
                         file=discord.File(render.getOutputFilename()),
                     )
                     render.setState(State.DONE)
@@ -588,8 +588,8 @@ async def renderQueueLoop():
                             `Trying to upload file to an external server... Done!`
                             """
                             await render.updateFeedback(newFeedback)
-                            await render.getInteraction().followup.send(
-                                content=f"{render.getInteraction().user.mention}\n{url}\n_This video will be deleted in 48 hours_"
+                            await render.reply(
+                                content=f"{render.getUser().mention}\n{url}\n_This video will be deleted in 48 hours_"
                             )
                             render.setState(State.DONE)
 
@@ -604,7 +604,7 @@ async def renderQueueLoop():
                         exceptionEmbed = discord.Embed(
                             description=exception, color=0xFF0000
                         )
-                        exceptionMessage = await render.getInteraction().followup.send(
+                        exceptionMessage = await render.reply(
                             embed=exceptionEmbed
                         )
                         addToDeletionQueue(exceptionMessage)

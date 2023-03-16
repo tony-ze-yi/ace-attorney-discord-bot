@@ -53,8 +53,17 @@ class Render:
     def getState(self):
         return self.state
 
-    def getInteraction(self):
-        return self.discordInteraction
+    def getUser(self):
+        if self.discordInteraction is not None:
+            return self.discordInteraction.user
+        else:
+            return self.discordReply.author
+
+    def getChannel(self):
+        if self.discordInteraction is not None:
+            return self.discordInteraction.channel
+        else:
+            return self.discordReply.channel
 
     def getFeedbackMessage(self):
         return self.feedbackMessage
@@ -103,7 +112,7 @@ class Render:
             newContent = textwrap.dedent(newContent).strip("\n")
             # Feedback messages will only be updated if their content is different to the new Content, to avoid spamming Discord's API
             if self.feedbackMessage.content != newContent:
-                await self.edit(content=newContent)
+                await self.feedbackMessage.edit(content=newContent)
             # If it's unable to edit/get the feedback message, it will raise an exception and that means that it no longer exists
         except Exception as exception:
             # If it doesn't exist, we will repost it.

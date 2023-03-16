@@ -231,8 +231,8 @@ async def help(interaction: Interaction):
     helpEmbed.add_field(
         name="Starting message",
         value="The bot will start from the last message sent, excluding the slash command you sent. If you want it to "
-              "end at a specific message, reply to the message and ping aabot with the format `@aabot render <number "
-              "of messages> <music (eg. tat) (optional)>`",
+              "end at a specific message, reply to that message and ping aabot "
+              "with the format `@aabot render <number of messages> <music (eg. tat) (optional)>`",
         inline=False,
     )
     await interaction.followup.send(embed=helpEmbed)
@@ -381,7 +381,7 @@ async def render(
 async def on_message(message):
     if courtBot.user in message.mentions:
         matches = re.findall(
-            rf"<@{courtBot.user.id}> render ([0-9]+) ?([a-zA-Z]{3})?", message.content
+            "<@" + rf"{courtBot.user.id}" + "> render ([0-9]+) ?([a-zA-Z]{3})?", message.content
         )
         if len(matches) > 0:
             num_messages = int(matches[0][0])
@@ -445,11 +445,12 @@ async def handle_reply_render(init_message: Message, num_messages: int, song: st
             raise Exception("Number of messages must be between 1 and 100")
 
         courtMessages = []
+        discordMessages = []
 
         # Get Message object of replied to message
         if init_message.reference is not None:
-            replied_to_message = init_message.reference.resolved
-            discordMessages = [replied_to_message]
+            replied_to_message = await init_message.channel.fetch_message(init_message.reference.message_id)
+            discordMessages.append(replied_to_message)
         else:
             await feedbackMessage.edit(content="Please reply to the message you want to the render to stop at!")
             return

@@ -160,10 +160,11 @@ async def music(interaction: Interaction):
 
     music_string = "\n"
     for entry in Music:
-        music_string += entry.value + " (" + entry.name + ") " + "\n"
-
-    music_string += 'Use the three letter abbreviation when using the reply render feature. For example, "@aabot render 100 tat" would render the last 100 messages before the message you replied to with the Trials and Tribulations music'
-    await interaction.followup.send("The available music is: " + music_string)
+        music_string += "`" + entry.value + " (" + entry.name + ") " + "`\n"
+    music_string += 'Use the three letter abbreviation when using the reply render feature. For example, ' \
+                    '`"@aabot render 100 tat"` would render the last 100 messages before the message you replied to ' \
+                    'with the Trials and Tribulations music.'
+    await interaction.followup.send("These are the background music tracks available: " + music_string)
 
 
 @tree.command(
